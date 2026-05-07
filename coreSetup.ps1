@@ -54,7 +54,7 @@ coreSetup.ps1 -InstallBaseApps -InstallOptionalApps
 coreSetup.ps1 -InstallDevApps -UninstallWindowsApps
 
 .NOTES
-Requires winget and administrator privileges. Run from Biztech Tools GUI or with elevated PowerShell.
+Requires winget, PS7, and administrator privileges. Run from super script gui or with elevated PowerShell 7.
 Patrick Moon - 2024
 Get the latest version at https://github.com/mrdatawolf/CoreSetup
 #>
