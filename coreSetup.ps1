@@ -392,15 +392,26 @@ function RemoveAndBlockNewOutlook {
         New-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -PropertyType String -Force | Out-Null
     }
 
+    # Remove the new Outlook app from provisioned packages to prevent it from being installed for new users
+    Write-Output "  - Checking for new Outlook in provisioned packages..."
+    $outlookProvisioned = Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -eq "Microsoft.OutlookForWindows"}
+    if ($outlookProvisioned) {
+        Write-Output "  - Removing new Outlook from provisioned packages..."
+        Remove-AppxProvisionedPackage -Online -PackageName $outlookProvisioned.PackageName 2>&1 | Out-Null
+        Write-Output "✓ New Outlook removed from provisioned packages (blocked from future install)"
+    } else {
+        Write-Output "✓ New Outlook not found in provisioned packages"
+    }
+
     # Remove the new Outlook app if it's already installed
     Write-Output "  - Checking for new Outlook installation..."
     $outlookPackage = Get-AppxPackage -Name "Microsoft.OutlookForWindows"
     if ($outlookPackage) {
         Write-Output "  - Removing new Outlook..."
-        Remove-AppxProvisionedPackage -AllUsers -Online -PackageName $outlookPackage.PackageFullName 2>&1 | Out-Null
+        Remove-AppxPackage -AllUsers -Online -PackageName $outlookPackage.PackageFullName 2>&1 | Out-Null
         Write-Output "✓ New Outlook removed and blocked"
     } else {
-        Write-Output "✓ New Outlook blocked (was not installed)"
+        Write-Output "✓ New Outlook was not installed (blocked successfully)"
     }
 }
 
