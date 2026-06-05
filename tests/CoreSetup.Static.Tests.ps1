@@ -4,7 +4,12 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $scriptPath = Join-Path $repoRoot "coreSetup.ps1"
 $readmePath = Join-Path $repoRoot "README.md"
 $electronRoot = Join-Path $repoRoot "electron"
-$electronCatalogPath = Join-Path $electronRoot "app-catalog.json"
+$electronBackendRoot = Join-Path $electronRoot "backend"
+$electronCatalogPath = Join-Path $electronBackendRoot "app-catalog.json"
+$electronCatalogModulePath = Join-Path $electronBackendRoot "catalog.js"
+$electronInstallerServicePath = Join-Path $electronBackendRoot "installerService.js"
+$electronWindowMaterialPath = Join-Path $electronBackendRoot "windowMaterial.js"
+$electronWindowControlsPath = Join-Path $electronBackendRoot "windowControls.js"
 $electronMainPath = Join-Path $electronRoot "main.js"
 $electronPreloadPath = Join-Path $electronRoot "preload.js"
 $electronIconRoot = Join-Path $electronRoot "renderer\assets\icons"
@@ -17,6 +22,10 @@ $readmeText = Get-Content $readmePath -Raw
 $electronMainText = Get-Content $electronMainPath -Raw
 $electronCatalogText = Get-Content $electronCatalogPath -Raw
 $electronCatalog = $electronCatalogText | ConvertFrom-Json
+$electronCatalogModuleText = Get-Content $electronCatalogModulePath -Raw
+$electronInstallerServiceText = Get-Content $electronInstallerServicePath -Raw
+$electronWindowMaterialText = Get-Content $electronWindowMaterialPath -Raw
+$electronWindowControlsText = Get-Content $electronWindowControlsPath -Raw
 $electronPreloadText = Get-Content $electronPreloadPath -Raw
 $electronIndexText = Get-Content $electronIndexPath -Raw
 $electronBodyText = [regex]::Match($electronIndexText, '(?s)<body>(.*)</body>').Groups[1].Value
@@ -235,17 +244,17 @@ Assert-Matches `
     -Message "Frameless Electron window should keep native resize frame and window depth."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'function supportsWindowsAcrylic\(\)[\s\S]*process\.platform !== "win32"[\s\S]*build >= 22621' `
     -Message "Electron should gate Windows acrylic to Windows 11 22H2 or newer."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'backgroundColor:\s*"#00000000"[\s\S]*backgroundMaterial:\s*"acrylic"' `
     -Message "Windows 11 material path should use native acrylic with transparent backgroundColor."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'function applyWindowMaterial\(win\)[\s\S]*win\.setBackgroundMaterial\("acrylic"\)' `
     -Message "Electron should reapply native acrylic material through the BrowserWindow API."
 
@@ -255,17 +264,17 @@ Assert-Matches `
     -Message "Electron should reapply acrylic on focus and blur so material does not drop to a solid fill."
 
 Assert-NotMatches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'return\s*\{[\s\r\n]*backgroundColor:\s*"#00000000",[\s\r\n]*backgroundMaterial:\s*"acrylic",?[\s\r\n]*transparent:\s*true' `
     -Message "Windows acrylic should not be combined with transparent:true."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'process\.platform === "darwin"[\s\S]*backgroundColor:\s*"#00000000"[\s\S]*transparent:\s*true[\s\S]*vibrancy:\s*"under-window"' `
     -Message "macOS material path should use under-window vibrancy with a transparent window."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronWindowMaterialText `
     -Pattern 'return\s*\{[\s\r\n]*backgroundColor:\s*"#1a2233"[\s\r\n]*\}' `
     -Message "Unsupported platforms should fall back to a solid dark window background."
 
@@ -280,13 +289,13 @@ Assert-Matches `
     -Message "Electron main process should expose a close-app IPC handler for the custom Exit button."
 
 Assert-Matches `
-    -Text $electronMainText `
-    -Pattern 'ipcMain\.handle\("get-window-bounds"[\s\S]*getBounds\(\)' `
+    -Text ($electronMainText + $electronWindowControlsText) `
+    -Pattern 'ipcMain\.handle\("get-window-bounds", getWindowBounds\)[\s\S]*getBounds\(\)' `
     -Message "Electron main process should expose window bounds for custom corner resize."
 
 Assert-Matches `
-    -Text $electronMainText `
-    -Pattern 'ipcMain\.handle\("resize-window"[\s\S]*win\.setBounds\(next, false\)' `
+    -Text ($electronMainText + $electronWindowControlsText) `
+    -Pattern 'ipcMain\.handle\("resize-window", resizeWindow\)[\s\S]*win\.setBounds\(next, false\)' `
     -Message "Electron main process should resize the native window from custom corner handles."
 
 Assert-Matches `
@@ -305,24 +314,34 @@ Assert-Matches `
     -Message "Electron preload should expose a narrow resizeWindow API."
 
 Assert-Matches `
-    -Text $electronMainText `
+    -Text $electronInstallerServiceText `
     -Pattern 'Start-Process -FilePath pwsh\.exe -Verb RunAs' `
     -Message "Electron installer should launch PowerShell with Windows elevation."
 
 Assert-Matches `
     -Text $electronMainText `
-    -Pattern 'const appCatalog = require\("\./app-catalog\.json"\)' `
-    -Message "Electron main process should load the shared application catalog."
+    -Pattern 'const \{ getApps, getAllowedPackageIds \} = require\("\./backend/catalog"\)' `
+    -Message "Electron main process should depend on the backend catalog module."
+
+Assert-Matches `
+    -Text $electronCatalogModuleText `
+    -Pattern 'function getAllowedPackageIds\(\)[\s\S]*new Set\(appCatalog\.map\(\(item\) => item\.id\)\)' `
+    -Message "Backend catalog module should derive the package allow-list from the shared catalog."
 
 Assert-Matches `
     -Text $electronMainText `
-    -Pattern 'allowedIds = new Set\(appCatalog\.map\(\(item\) => item\.id\)\)' `
-    -Message "Electron main process should derive the package allow-list from the shared catalog."
-
-Assert-Matches `
-    -Text $electronMainText `
-    -Pattern 'ipcMain\.handle\("get-apps", \(\) => appCatalog\)' `
+    -Pattern 'ipcMain\.handle\("get-apps", \(\) => getApps\(\)\)' `
     -Message "Electron main process should expose the shared catalog through IPC."
+
+Assert-Matches `
+    -Text $electronMainText `
+    -Pattern 'ipcMain\.handle\("install-apps", \(_event, ids\) => installApps\(ids, allowedIds\)\)' `
+    -Message "Electron main process should delegate install work to the backend installer service."
+
+Assert-NotMatches `
+    -Text $electronMainText `
+    -Pattern 'fs\.writeFileSync|spawn\("powershell\.exe"|winget install|function buildInstallScript|function supportsWindowsAcrylic|function resizeWindow' `
+    -Message "Electron main process should only wire frontend IPC to backend services, not contain backend implementation details."
 
 Assert-Matches `
     -Text $electronPreloadText `

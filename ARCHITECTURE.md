@@ -13,7 +13,12 @@ The old browser prototype was removed. The Electron app is the supported GUI.
 CoreSetup/
 ├── coreSetup.ps1
 ├── electron/
-│   ├── app-catalog.json
+│   ├── backend/
+│   │   ├── app-catalog.json
+│   │   ├── catalog.js
+│   │   ├── installerService.js
+│   │   ├── windowControls.js
+│   │   └── windowMaterial.js
 │   ├── main.js
 │   ├── preload.js
 │   └── renderer/
@@ -31,13 +36,18 @@ CoreSetup/
 
 ## Electron Process Boundaries
 
-`electron/main.js` owns native integration:
+`electron/main.js` is the Electron composition root:
 
 - BrowserWindow creation.
-- Windows acrylic / macOS vibrancy / solid fallback selection.
-- Elevated PowerShell launch for selected winget IDs.
-- Allow-list validation for package IDs from `electron/app-catalog.json`.
-- Custom close and resize IPC handlers.
+- IPC route registration.
+- Delegation to backend modules.
+
+Backend modules live in `electron/backend/`:
+
+- `catalog.js`: exposes the supported app catalog and exact package-ID allow-list.
+- `installerService.js`: validates requested installs, writes the temporary PowerShell script, and launches elevated PowerShell.
+- `windowMaterial.js`: owns Windows acrylic, macOS vibrancy, and solid fallback options.
+- `windowControls.js`: owns close, bounds, and resize behavior for the frameless window.
 
 `electron/preload.js` exposes a narrow API:
 
@@ -62,7 +72,7 @@ Package IDs are present only in JavaScript data and IPC payloads. The UI display
 
 ## App Catalog
 
-`electron/app-catalog.json` is the source of truth for GUI install options.
+`electron/backend/app-catalog.json` is the source of truth for GUI install options.
 
 Each entry needs:
 
@@ -70,7 +80,7 @@ Each entry needs:
 - `id`: exact winget package ID sent to the installer.
 - `icon`: SVG filename under `electron/renderer/assets/icons/`.
 
-The main process derives its allow-list from the catalog and exposes the same catalog to the renderer through preload IPC. Adding a normal GUI option should not require editing the renderer or duplicating package IDs.
+The backend derives its allow-list from the catalog and exposes the same catalog to the renderer through preload IPC. Adding a normal GUI option should not require editing the renderer or duplicating package IDs.
 
 ## Styling
 

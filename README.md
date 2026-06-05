@@ -28,7 +28,7 @@ The `.exe` bundles the Electron runtime, so a client does not need Node.js, npm,
 
 ## Add An Application
 
-Add client-facing installer options in `electron/app-catalog.json`:
+Add client-facing installer options in `electron/backend/app-catalog.json`:
 
 ```json
 {
@@ -40,7 +40,7 @@ Add client-facing installer options in `electron/app-catalog.json`:
 
 Then add the matching SVG icon to `electron/renderer/assets/icons/`.
 
-The Electron main process derives its package allow-list from this catalog, and the renderer uses the same catalog for the app list. Package IDs remain hidden from users.
+The Electron backend derives its package allow-list from this catalog, and the renderer gets the same catalog through preload IPC. Package IDs remain hidden from users.
 
 ## Run Checks
 
