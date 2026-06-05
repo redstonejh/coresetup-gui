@@ -1,42 +1,55 @@
 # CoreSetup
-**Right-click here and select "Save link as..." to download the script.**
 
-[Download coreSetup PS1 version here](https://github.com/mrdatawolf/CoreSetup/raw/main/coreSetup.ps1)
+CoreSetup installs common workstation applications on Windows.
 
-[Download coreUpdate PS1 here](https://github.com/mrdatawolf/CoreSetup/raw/main/coreUpdate.ps1)
+The maintained user-facing app is the Electron installer in `electron/`. It presents a simple app picker and launches the selected winget installs through an elevated PowerShell process.
 
+## Run The Desktop Installer
 
-Uses winget to uninstall apps we don't want on systems.
-Also uses winget to installs various apps we want.
-Also updates applications if we want.
-Also allows us to set default power options.
-Get the latest version at https://github.com/mrdatawolf/CoreSetup
+```powershell
+npm install
+npm start
+```
 
-**Because it's a powershell script you need to allow it to run on your system.  If you don't know what this means then DO NOT USE this script.**
-**Fully run the Windows and Dell updates before this!!!!!** 
-**Why? Because it needs the updates from windows update for winget and other sub-systems and the Dell apps will be removed.**
-**To minimize issues - Open a powershell prompt first and type winget list.  Answer yes.**
+The installer validates selected package IDs against an allow-list before launching PowerShell.
 
-## Common solutions for first runs
-### If it fails saying scripts can't be run:
-set-executionpolicy remotesigned 
-then Y when it asks how to change it.
-### If it is just sitting on the winget update task 
-press y and enter.  It is actually asking if you agree to the souce agreement terms. if you want to actually see the original prompt open a powershell window and do winget list instead.
-### If it closes right away or you see a ExecutionPolicy error
-1. Win10 Pro
-* Set-ExecutionPolicy Unrestricted
-2. Win11 Pro
-* Set-ExecutionPolicy -Scope CurrentUser Unrestricted
+## Run Checks
 
-## You can also try
-From (https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_signing?view=powershell-7.4):
-To run an unsigned script, use the Unblock-File cmdlet or use the following procedure.
-1. Save the script file on your computer.
-2. Click Start, click My Computer, and locate the saved script file.
-3. Right-click the script file, and then click Properties.
-4. Click Unblock.
+```powershell
+npm run check
+npm audit --audit-level=high
+```
 
-<!-- Purpose: Initial setup of the computer once Windows  and it's store has been fully updated. -->
-<!-- INSTALL_COMMAND: curl -o coreSetup.ps1 https://github.com/mrdatawolf/CoreSetup/raw/main/coreSetup.ps1 -->
-<!-- RUN_COMMAND: ./coreSetup.ps1 -->
+## PowerShell Script
+
+The backend script is still available as `coreSetup.ps1` for direct administrative use.
+
+Download the raw script from the upstream repository:
+
+https://github.com/mrdatawolf/CoreSetup/raw/main/coreSetup.ps1
+
+Because this is a PowerShell setup script, it should be run only by someone who understands what it will change on the system.
+
+Before first use:
+
+- Fully run Windows and vendor updates.
+- Open PowerShell and run `winget list` once so winget source agreements are accepted.
+- Run from an elevated PowerShell prompt when using the script directly.
+
+Common first-run fixes:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+If the downloaded script is blocked:
+
+```powershell
+Unblock-File .\coreSetup.ps1
+```
+
+## Notes
+
+- The old browser prototype was removed.
+- The Electron GUI is the supported client-facing installer.
+- The PowerShell script remains the setup backend.

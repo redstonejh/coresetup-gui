@@ -1,0 +1,14 @@
+{
+  "name": "coresetup-installer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CoreSetup desktop installer GUI",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "pwsh -NoProfile -ExecutionPolicy Bypass -File tests/Run-Checks.ps1"
+  },
+  "devDependencies": {
+    "electron": "^42.3.3"
+  }
+}

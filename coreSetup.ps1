@@ -111,14 +111,35 @@ if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     }
 }
 
-# List of applications ids to install
+# List of application IDs to install
 $apps = @("Mozilla.Firefox")
 $appsScopeRequired = @("Google.Chrome")
-$appThatNeedWingetSourceDeclared = @("Adobe Acrobat Reader DC")
-$optionalApps = @("SonicWALL.NetExtender", "Microsoft.Powershell")
-$optionalAppsWithComplications = @("Microsoft 365")
-$devApps = @("git.git", "vscode", "github desktop", "JanDeDobbeleer.OhMyPosh", "nvm-windows")
-$remoteAccessApps = @("tightvnc")
+$appThatNeedWingetSourceDeclared = @("Adobe.Acrobat.Reader.64-bit")
+$optionalApps = @("SonicWall.NetExtender", "Microsoft.PowerShell")
+$optionalAppsWithComplications = @("Microsoft.Office")
+$devApps = @("Git.Git", "Microsoft.VisualStudioCode", "GitHub.GitHubDesktop", "JanDeDobbeleer.OhMyPosh", "CoreyButler.NVMforWindows")
+$remoteAccessApps = @("GlavSoft.TightVNC")
+
+$script:failureCount = 0
+
+function Add-Failure {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$message
+    )
+
+    $script:failureCount++
+    Write-Output "  ✗ $message"
+}
+
+function Test-NoNewFailures {
+    param (
+        [Parameter(Mandatory = $true)]
+        [int]$StartCount
+    )
+
+    return $script:failureCount -eq $StartCount
+}
 
 # List of applications names to uninstall
 $appsToRemove = @(
@@ -255,13 +276,13 @@ function Install-App {
     )
 
     if ($source -and $scope) {
-        winget install $app -s $source --scope $scope --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget install --id $app --exact -s $source --scope $scope --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
     }
     elseif ($source) {
-        winget install $app -s $source --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget install --id $app --exact -s $source --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
     }
     else {
-        winget install $app --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget install --id $app --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
     }
 }
 
@@ -279,7 +300,7 @@ function Install-Apps {
         $percentComplete = [Math]::Floor((($i + 1) / $totalApps) * 100)
         Write-Output "[$percentComplete%] Checking $app..."
 
-        $wingetList = winget list --id $app --disable-interactivity 2>$null
+        $wingetList = winget list --id $app --exact --disable-interactivity 2>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Output "  ✓ $app already installed (skipping)"
         }
@@ -290,7 +311,7 @@ function Install-Apps {
                 Write-Output "  ✓ $app installed successfully"
             }
             else {
-                Write-Output "  ✗ $app failed to install (continuing anyway)"
+                Add-Failure "$app failed to install"
             }
         }
     }
@@ -308,16 +329,27 @@ function Uninstall-Apps {
         $percentComplete = [Math]::Floor((($i + 1) / $totalApps) * 100)
         Write-Output "[$percentComplete%] Checking $app..."
 
-        # Check if the application is installed
-        $wingetList = winget list --name $app --disable-interactivity 2>$null
+        # Check by exact display name first, then exact package ID for GUID/package targets.
+        $uninstallMatchType = "name"
+        $wingetList = winget list --name $app --exact --disable-interactivity 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            $wingetList = winget list --id $app --exact --disable-interactivity 2>$null
+            $uninstallMatchType = "id"
+        }
+
         if ($LASTEXITCODE -eq 0) {
             Write-Output "  → Uninstalling $app..."
-            winget uninstall $app --silent --disable-interactivity 2>$null
+            if ($uninstallMatchType -eq "id") {
+                winget uninstall --id $app --exact --silent --disable-interactivity 2>$null
+            }
+            else {
+                winget uninstall --name $app --exact --silent --disable-interactivity 2>$null
+            }
             if ($LASTEXITCODE -eq 0) {
                 Write-Output "  ✓ $app uninstalled"
             }
             else {
-                Write-Output "  ~ $app uninstall attempted (may require manual removal)"
+                Add-Failure "$app uninstall failed or requires manual removal"
             }
         }
         else {
@@ -329,47 +361,91 @@ function Uninstall-Apps {
 function RunUpdates {
     Write-Output "→ Updating winget sources..."
     winget source update --disable-interactivity 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Add-Failure "winget source update failed"
+        return
+    }
     Write-Output "→ Updating all installed applications (this may take a while)..."
     winget update --all --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-    Write-Output "✓ Updates completed"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Output "✓ Updates completed"
+    }
+    else {
+        Add-Failure "winget update failed"
+    }
 }
 
 function PowerSetup {
+    $operationStartFailures = $script:failureCount
     Write-Output "→ Configuring power settings for maximum performance..."
     Write-Output "  - Disabling monitor timeout..."
     powercfg.exe -x -monitor-timeout-ac 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable AC monitor timeout" }
     powercfg.exe -x -monitor-timeout-dc 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable DC monitor timeout" }
     Write-Output "  - Disabling disk timeout..."
     powercfg.exe -x -disk-timeout-ac 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable AC disk timeout" }
     powercfg.exe -x -disk-timeout-dc 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable DC disk timeout" }
     Write-Output "  - Disabling standby..."
     powercfg.exe -x -standby-timeout-ac 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable AC standby timeout" }
     powercfg.exe -x -standby-timeout-dc 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable DC standby timeout" }
     Write-Output "  - Disabling hibernation..."
     powercfg.exe -x -hibernate-timeout-ac 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable AC hibernation timeout" }
     powercfg.exe -x -hibernate-timeout-dc 0
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to disable DC hibernation timeout" }
     powercfg.exe -h off
-    Write-Output "✓ Power settings configured"
+    if ($LASTEXITCODE -ne 0) { Add-Failure "failed to turn hibernation off" }
+    if (Test-NoNewFailures -StartCount $operationStartFailures) {
+        Write-Output "✓ Power settings configured"
+    }
 }
 
 function DoPublicDiscovery {
+    $operationStartFailures = $script:failureCount
     Write-Output "→ Enabling network discovery on public networks..."
-    Set-NetFirewallRule -DisplayGroup "Network Discovery" -Enabled True -Profile Public 2>&1 | Out-Null
+    try {
+        Set-NetFirewallRule -DisplayGroup "Network Discovery" -Enabled True -Profile Public -ErrorAction Stop 2>&1 | Out-Null
+    } catch {
+        Add-Failure "failed to enable Network Discovery firewall rules: $_"
+    }
     Write-Output "→ Enabling file and printer sharing..."
-    Set-NetFirewallRule -DisplayGroup "File And Printer Sharing" -Enabled True -Profile Public 2>&1 | Out-Null
-    Write-Output "✓ Public network discovery enabled"
+    try {
+        Set-NetFirewallRule -DisplayGroup "File And Printer Sharing" -Enabled True -Profile Public -ErrorAction Stop 2>&1 | Out-Null
+    } catch {
+        Add-Failure "failed to enable File and Printer Sharing firewall rules: $_"
+    }
+    if (Test-NoNewFailures -StartCount $operationStartFailures) {
+        Write-Output "✓ Public network discovery enabled"
+    }
 }
 
 function DoRemoteDesktop {
+    $operationStartFailures = $script:failureCount
     Write-Output "→ Enabling Remote Desktop..."
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
-    Enable-NetFirewallRule -DisplayGroup "Remote Desktop" 2>&1 | Out-Null
-    Write-Output "✓ Remote Desktop enabled"
+    try {
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -ErrorAction Stop
+    } catch {
+        Add-Failure "failed to enable Remote Desktop registry setting: $_"
+    }
+    try {
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction Stop 2>&1 | Out-Null
+    } catch {
+        Add-Failure "failed to enable Remote Desktop firewall rules: $_"
+    }
+    if (Test-NoNewFailures -StartCount $operationStartFailures) {
+        Write-Output "✓ Remote Desktop enabled"
+    }
     Write-Output "→ Installing remote access tools..."
     Install-Apps -apps $remoteAccessApps
 }
 
 function RemoveAndBlockNewOutlook {
+    $operationStartFailures = $script:failureCount
     Write-Output "→ Removing and blocking new Outlook..."
 
     # Path to the registry key
@@ -378,7 +454,12 @@ function RemoveAndBlockNewOutlook {
     # Create the registry key if it doesn't exist
     if (-not (Test-Path $regPath)) {
         Write-Output "  - Creating registry key..."
-        New-Item -Path $regPath -Force | Out-Null
+        try {
+            New-Item -Path $regPath -Force -ErrorAction Stop | Out-Null
+        } catch {
+            Add-Failure "failed to create Outlook block registry key: $_"
+            return
+        }
     }
 
     # Set the registry value to block new Outlook
@@ -387,35 +468,66 @@ function RemoveAndBlockNewOutlook {
 
     Write-Output "  - Setting block registry value..."
     try {
-        Set-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue
+        Set-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -ErrorAction Stop
     } catch {
-        New-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -PropertyType String -Force | Out-Null
+        try {
+            New-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -PropertyType String -Force -ErrorAction Stop | Out-Null
+        } catch {
+            Add-Failure "failed to set Outlook block registry value: $_"
+        }
     }
 
     # Remove the new Outlook app from provisioned packages to prevent it from being installed for new users
     Write-Output "  - Checking for new Outlook in provisioned packages..."
-    $outlookProvisioned = Get-AppxProvisionedPackage -Online | Where-Object {$_.DisplayName -eq "Microsoft.OutlookForWindows"}
+    try {
+        $outlookProvisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop | Where-Object {$_.DisplayName -eq "Microsoft.OutlookForWindows"})
+    } catch {
+        Add-Failure "failed to query provisioned Appx packages: $_"
+        $outlookProvisioned = @()
+    }
     if ($outlookProvisioned) {
-        Write-Output "  - Removing new Outlook from provisioned packages..."
-        Remove-AppxProvisionedPackage -Online -PackageName $outlookProvisioned.PackageName 2>&1 | Out-Null
-        Write-Output "✓ New Outlook removed from provisioned packages (blocked from future install)"
+        foreach ($package in $outlookProvisioned) {
+            Write-Output "  - Removing new Outlook from provisioned packages..."
+            try {
+                Remove-AppxProvisionedPackage -Online -PackageName $package.PackageName -ErrorAction Stop 2>&1 | Out-Null
+                Write-Output "✓ New Outlook removed from provisioned packages (blocked from future install)"
+            } catch {
+                Add-Failure "failed to remove new Outlook from provisioned packages: $_"
+            }
+        }
     } else {
         Write-Output "✓ New Outlook not found in provisioned packages"
     }
 
     # Remove the new Outlook app if it's already installed
     Write-Output "  - Checking for new Outlook installation..."
-    $outlookPackage = Get-AppxPackage -Name "Microsoft.OutlookForWindows"
+    try {
+        $outlookPackage = @(Get-AppxPackage -Name "Microsoft.OutlookForWindows" -AllUsers -ErrorAction Stop)
+    } catch {
+        Add-Failure "failed to query installed new Outlook package: $_"
+        $outlookPackage = @()
+    }
     if ($outlookPackage) {
-        Write-Output "  - Removing new Outlook..."
-        Remove-AppxPackage -AllUsers -Online -PackageName $outlookPackage.PackageFullName 2>&1 | Out-Null
-        Write-Output "✓ New Outlook removed and blocked"
+        foreach ($package in $outlookPackage) {
+            Write-Output "  - Removing new Outlook..."
+            try {
+                Remove-AppxPackage -AllUsers -Package $package.PackageFullName -ErrorAction Stop 2>&1 | Out-Null
+                Write-Output "✓ New Outlook removed and blocked"
+            } catch {
+                Add-Failure "failed to remove installed new Outlook: $_"
+            }
+        }
     } else {
         Write-Output "✓ New Outlook was not installed (blocked successfully)"
+    }
+
+    if (Test-NoNewFailures -StartCount $operationStartFailures) {
+        Write-Output "✓ New Outlook removal/block operation completed"
     }
 }
 
 function DisableWiFiAndBluetooth {
+    $operationStartFailures = $script:failureCount
     Write-Output "→ Disabling WiFi and Bluetooth adapters..."
 
     # Disable WiFi adapters
@@ -428,7 +540,7 @@ function DisableWiFiAndBluetooth {
                 Disable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction Stop
                 Write-Output "    ✓ WiFi adapter disabled"
             } catch {
-                Write-Output "    ✗ Failed to disable WiFi adapter: $_"
+                Add-Failure "failed to disable WiFi adapter $($adapter.Name): $_"
             }
         }
     } else {
@@ -445,14 +557,16 @@ function DisableWiFiAndBluetooth {
                 Disable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction Stop
                 Write-Output "    ✓ Bluetooth adapter disabled"
             } catch {
-                Write-Output "    ✗ Failed to disable Bluetooth adapter: $_"
+                Add-Failure "failed to disable Bluetooth adapter $($adapter.Name): $_"
             }
         }
     } else {
         Write-Output "  - No Bluetooth adapters found"
     }
 
-    Write-Output "✓ WiFi and Bluetooth disable operation completed"
+    if (Test-NoNewFailures -StartCount $operationStartFailures) {
+        Write-Output "✓ WiFi and Bluetooth disable operation completed"
+    }
 }
 
 # ============================================
@@ -470,7 +584,12 @@ Invoke-Sanity-Checks
 # Update winget sources
 Write-Output "→ Updating winget sources..."
 winget source update --disable-interactivity 2>&1 | Out-Null
-Write-Output "✓ Winget sources updated"
+if ($LASTEXITCODE -eq 0) {
+    Write-Output "✓ Winget sources updated"
+}
+else {
+    Add-Failure "winget source update failed"
+}
 Write-Output ""
 
 # Track if anything was selected
@@ -484,8 +603,8 @@ if ($InstallBaseApps) {
     Write-Output "========================================"
     Install-Apps -apps $apps
     Write-Output ""
-    Write-Output "→ Installing apps requiring MS Store source..."
-    Install-Apps -apps $appThatNeedWingetSourceDeclared -source "msstore"
+    Write-Output "→ Installing apps requiring explicit winget source..."
+    Install-Apps -apps $appThatNeedWingetSourceDeclared -source "winget"
     Write-Output ""
     Write-Output "→ Installing apps requiring machine scope..."
     Install-Apps -apps $appsScopeRequired -source "winget" -scope "machine"
@@ -630,11 +749,18 @@ if ($operationsRun -gt 0) {
 } else {
     Write-Output "⚠️  NO OPERATIONS SELECTED"
 }
+if ($script:failureCount -gt 0) {
+    Write-Output "✗ $script:failureCount FAILURE(S) DETECTED"
+}
 Write-Output "=============================="
 
 # Exit cleanly (no pause in GUI mode)
 if (-not $guiMode) {
     Pause
+}
+
+if ($script:failureCount -gt 0) {
+    exit 1
 }
 
 exit 0

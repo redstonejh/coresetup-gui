@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoreSetup Installer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="renderer.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="window-drag-region" aria-hidden="true"></div>
+    <div class="resize-corner top-left" aria-hidden="true"></div>
+    <div class="resize-corner top-right" aria-hidden="true"></div>
+    <div class="resize-corner bottom-left" aria-hidden="true"></div>
+    <div class="resize-corner bottom-right" aria-hidden="true"></div>
+    <section class="app-window">
+      <section class="content">
+        <label class="search-field" for="search">
+          <input class="search-input" id="search" type="search" autocomplete="off">
+          <span>Search applications</span>
+        </label>
+        <section class="app-list" id="apps" aria-label="Applications"></section>
+      </section>
+
+      <footer class="action-bar">
+        <button class="button exit" type="button" id="exit">Exit</button>
+        <div class="toolbar">
+          <button class="button ghost" type="button" id="clear">Clear</button>
+          <button class="button secondary" type="button" id="selectAll">Select all</button>
+          <button class="button primary" type="button" id="install">Install</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
