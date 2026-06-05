@@ -2,6 +2,7 @@
   color-scheme: dark;
   --panel: rgba(26, 34, 51, .66);
   --panel-soft: rgba(32, 42, 61, .34);
+  --search-surface: rgba(39, 49, 70, .512);
   --secondary-glass: rgba(52, 64, 88, .26);
   --option-hover: rgba(82, 96, 125, .20);
   --button-hover: rgba(36, 48, 71, .32);
@@ -200,7 +201,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
-  background: var(--secondary-glass);
+  background: var(--search-surface);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   font: inherit;
   font-size: 15px;
@@ -211,7 +212,7 @@ body {
 .search-field:focus-within .search-input {
   border-color: rgba(147, 197, 253, .48);
   border-width: 2px;
-  background: rgba(52, 64, 88, .34);
+  background: var(--search-surface);
   padding-left: 14px;
   padding-top: 21px;
   padding-bottom: 7px;

@@ -525,6 +525,7 @@ foreach ($color in @("#3b82f6", "#f8fafc", "#94a3b8")) {
 foreach ($glassToken in @(
     '--panel:\s*rgba\(26, 34, 51, \.66\)',
     '--panel-soft:\s*rgba\(32, 42, 61, \.34\)',
+    '--search-surface:\s*rgba\(39, 49, 70, \.512\)',
     '--secondary-glass:\s*rgba\(52, 64, 88, \.26\)',
     '--option-hover:\s*rgba\(82, 96, 125, \.20\)',
     '--button-hover:\s*rgba\(36, 48, 71, \.32\)'
@@ -631,8 +632,13 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
+    -Pattern '--search-surface:\s*rgba\(39, 49, 70, \.512\)' `
+    -Message "Search surface should mathematically match the perceived normal secondary button color over the footer stack."
+
+Assert-Matches `
+    -Text $electronStylesText `
     -Pattern '--secondary-glass:\s*rgba\(52, 64, 88, \.26\)' `
-    -Message "Search, footer, and option hover surfaces should use one lighter less-tinted secondary glass overlay."
+    -Message "Footer and neutral secondary surfaces should use one lighter less-tinted overlay."
 
 Assert-Matches `
     -Text $electronStylesText `
@@ -651,13 +657,13 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--secondary-glass\);' `
-    -Message "Search input should use a tint over the native window material while keeping text readable."
+    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--search-surface\);' `
+    -Message "Search input should use the computed button-matched tint while keeping text readable."
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.search-field:focus-within \.search-input\s*\{[\s\S]*border-color:\s*rgba\(147, 197, 253, \.48\);[\s\S]*background:\s*rgba\(52, 64, 88, \.34\);' `
-    -Message "Focused search input should keep a glass tint instead of a solid focus highlight."
+    -Pattern '\.search-field:focus-within \.search-input\s*\{[\s\S]*border-color:\s*rgba\(147, 197, 253, \.48\);[\s\S]*background:\s*var\(--search-surface\);' `
+    -Message "Focused search input should keep the same button-matched surface tint instead of darkening."
 
 Assert-Matches `
     -Text $electronStylesText `
