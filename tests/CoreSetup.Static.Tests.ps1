@@ -651,8 +651,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Search input should use the shared glass material while keeping text readable."
+    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--secondary-glass\);' `
+    -Message "Search input should use a tint over the native window material while keeping text readable."
 
 Assert-Matches `
     -Text $electronStylesText `
@@ -661,13 +661,13 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.button\s*\{[\s\S]*background:\s*var\(--panel-soft\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Buttons should use the shared glass material with their own hierarchy tint."
+    -Pattern '\.button\s*\{[\s\S]*background:\s*var\(--panel-soft\);' `
+    -Message "Buttons should use their own hierarchy tint without adding another blur layer."
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.action-bar\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Bottom action bar should use the shared glass material."
+    -Pattern '\.action-bar\s*\{[\s\S]*background:\s*var\(--secondary-glass\);' `
+    -Message "Bottom action bar should use a tint over the native window material."
 
 Assert-Matches `
     -Text $electronStylesText `
@@ -681,8 +681,8 @@ Assert-Matches `
 
 Assert-NotMatches `
     -Text $electronStylesText `
-    -Pattern '\.app-row(?::hover|\.selected)\s*\{[^\}]*backdrop-filter' `
-    -Message "App row hover and selected states should not stack additional gaussian blur over the window acrylic."
+    -Pattern 'backdrop-filter|--glass-blur' `
+    -Message "Renderer CSS should not add component-level gaussian blur; native window acrylic/vibrancy owns the blur."
 
 Assert-Matches `
     -Text $electronStylesText `
