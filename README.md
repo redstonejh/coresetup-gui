@@ -26,6 +26,22 @@ The generated installer is written to `dist/CoreSetup-Setup-0.1.0.exe`.
 
 The `.exe` bundles the Electron runtime, so a client does not need Node.js, npm, or Electron installed. Windows still needs winget available for the selected application installs.
 
+## Add An Application
+
+Add client-facing installer options in `electron/app-catalog.json`:
+
+```json
+{
+  "name": "Application Name",
+  "id": "Publisher.PackageId",
+  "icon": "application.svg"
+}
+```
+
+Then add the matching SVG icon to `electron/renderer/assets/icons/`.
+
+The Electron main process derives its package allow-list from this catalog, and the renderer uses the same catalog for the app list. Package IDs remain hidden from users.
+
 ## Run Checks
 
 ```powershell

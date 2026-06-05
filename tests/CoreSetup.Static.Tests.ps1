@@ -4,6 +4,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $scriptPath = Join-Path $repoRoot "coreSetup.ps1"
 $readmePath = Join-Path $repoRoot "README.md"
 $electronRoot = Join-Path $repoRoot "electron"
+$electronCatalogPath = Join-Path $electronRoot "app-catalog.json"
 $electronMainPath = Join-Path $electronRoot "main.js"
 $electronPreloadPath = Join-Path $electronRoot "preload.js"
 $electronIconRoot = Join-Path $electronRoot "renderer\assets\icons"
@@ -14,6 +15,8 @@ $packagePath = Join-Path $repoRoot "package.json"
 $scriptText = Get-Content $scriptPath -Raw
 $readmeText = Get-Content $readmePath -Raw
 $electronMainText = Get-Content $electronMainPath -Raw
+$electronCatalogText = Get-Content $electronCatalogPath -Raw
+$electronCatalog = $electronCatalogText | ConvertFrom-Json
 $electronPreloadText = Get-Content $electronPreloadPath -Raw
 $electronIndexText = Get-Content $electronIndexPath -Raw
 $electronBodyText = [regex]::Match($electronIndexText, '(?s)<body>(.*)</body>').Groups[1].Value
@@ -308,13 +311,33 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronMainText `
-    -Pattern 'allowedIds = new Set' `
-    -Message "Electron main process should validate package IDs against an allow-list."
+    -Pattern 'const appCatalog = require\("\./app-catalog\.json"\)' `
+    -Message "Electron main process should load the shared application catalog."
+
+Assert-Matches `
+    -Text $electronMainText `
+    -Pattern 'allowedIds = new Set\(appCatalog\.map\(\(item\) => item\.id\)\)' `
+    -Message "Electron main process should derive the package allow-list from the shared catalog."
+
+Assert-Matches `
+    -Text $electronMainText `
+    -Pattern 'ipcMain\.handle\("get-apps", \(\) => appCatalog\)' `
+    -Message "Electron main process should expose the shared catalog through IPC."
+
+Assert-Matches `
+    -Text $electronPreloadText `
+    -Pattern 'getApps:\s*\(\)\s*=>\s*ipcRenderer\.invoke\("get-apps"\)' `
+    -Message "Electron preload should expose catalog loading through the safe API."
 
 Assert-Matches `
     -Text $electronRendererText `
     -Pattern 'window\.coreSetup\.installApps' `
     -Message "Electron renderer should call the safe preload install API."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'apps = await window\.coreSetup\.getApps\(\)' `
+    -Message "Electron renderer should render from the shared application catalog instead of a hardcoded list."
 
 Assert-NotMatches `
     -Text $electronBodyText `
@@ -351,17 +374,36 @@ foreach ($appId in @(
     "GlavSoft.TightVNC"
 )) {
     Assert-Matches `
-        -Text $electronMainText `
+        -Text $electronCatalogText `
         -Pattern ([regex]::Escape($appId)) `
-        -Message "Electron allow-list should include package ID: $appId"
-    Assert-Matches `
-        -Text $electronRendererText `
-        -Pattern ([regex]::Escape($appId)) `
-        -Message "Electron app list should include package ID: $appId"
+        -Message "Electron catalog should include package ID: $appId"
     Assert-NotMatches `
         -Text $electronIndexText `
         -Pattern ([regex]::Escape($appId)) `
         -Message "Electron HTML should not display package ID: $appId"
+    Assert-NotMatches `
+        -Text $electronRendererText `
+        -Pattern ([regex]::Escape($appId)) `
+        -Message "Electron renderer should not hardcode package ID: $appId"
+}
+
+Assert-True `
+    -Condition ($electronCatalog.Count -eq 12) `
+    -Message "Electron catalog should contain the 12 supported installer options."
+
+foreach ($item in $electronCatalog) {
+    Assert-True `
+        -Condition (-not [string]::IsNullOrWhiteSpace($item.name)) `
+        -Message "Every catalog entry should have a human-readable name."
+    Assert-True `
+        -Condition (-not [string]::IsNullOrWhiteSpace($item.id)) `
+        -Message "Every catalog entry should have an exact winget package ID."
+    Assert-True `
+        -Condition (-not [string]::IsNullOrWhiteSpace($item.icon)) `
+        -Message "Every catalog entry should have an icon filename."
+    Assert-True `
+        -Condition (Test-Path (Join-Path $electronIconRoot $item.icon)) `
+        -Message "Every catalog entry should point at an existing icon: $($item.icon)"
 }
 
 Assert-NotMatches `
@@ -431,7 +473,7 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronRendererText `
-    -Pattern 'apps\.forEach\(\(\[, id\]\) => selected\.add\(id\)\)' `
+    -Pattern 'apps\.forEach\(\(\{ id \}\) => selected\.add\(id\)\)' `
     -Message "Select all should only select all apps."
 
 Assert-NotMatches `
@@ -675,9 +717,9 @@ foreach ($icon in @(
         -Condition (Test-Path (Join-Path $electronIconRoot $icon)) `
         -Message "Electron application icon should exist: $icon"
     Assert-Matches `
-        -Text $electronRendererText `
+        -Text $electronCatalogText `
         -Pattern ([regex]::Escape($icon)) `
-        -Message "Electron renderer should reference application icon: $icon"
+        -Message "Electron catalog should reference application icon: $icon"
 }
 
 if ($failures.Count -gt 0) {

@@ -3,21 +3,9 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
+const appCatalog = require("./app-catalog.json");
 
-const allowedIds = new Set([
-  "Mozilla.Firefox",
-  "Google.Chrome",
-  "Adobe.Acrobat.Reader.64-bit",
-  "SonicWall.NetExtender",
-  "Microsoft.PowerShell",
-  "Microsoft.Office",
-  "Git.Git",
-  "Microsoft.VisualStudioCode",
-  "GitHub.GitHubDesktop",
-  "JanDeDobbeleer.OhMyPosh",
-  "CoreyButler.NVMforWindows",
-  "GlavSoft.TightVNC"
-]);
+const allowedIds = new Set(appCatalog.map((item) => item.id));
 
 function supportsWindowsAcrylic() {
   if (process.platform !== "win32") {
@@ -136,6 +124,8 @@ ipcMain.handle("install-apps", async (_event, ids) => {
   child.unref();
   return { ok: true, message: "Windows will ask for permission, then CoreSetup will install the apps." };
 });
+
+ipcMain.handle("get-apps", () => appCatalog);
 
 ipcMain.handle("close-app", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.close();

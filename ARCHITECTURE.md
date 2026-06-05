@@ -13,6 +13,7 @@ The old browser prototype was removed. The Electron app is the supported GUI.
 CoreSetup/
 ├── coreSetup.ps1
 ├── electron/
+│   ├── app-catalog.json
 │   ├── main.js
 │   ├── preload.js
 │   └── renderer/
@@ -35,7 +36,7 @@ CoreSetup/
 - BrowserWindow creation.
 - Windows acrylic / macOS vibrancy / solid fallback selection.
 - Elevated PowerShell launch for selected winget IDs.
-- Allow-list validation for package IDs.
+- Allow-list validation for package IDs from `electron/app-catalog.json`.
 - Custom close and resize IPC handlers.
 
 `electron/preload.js` exposes a narrow API:
@@ -58,6 +59,18 @@ The renderer does not get Node access.
 - custom resize-corner pointer handling
 
 Package IDs are present only in JavaScript data and IPC payloads. The UI displays human-readable app names only.
+
+## App Catalog
+
+`electron/app-catalog.json` is the source of truth for GUI install options.
+
+Each entry needs:
+
+- `name`: human-readable label shown in the app list.
+- `id`: exact winget package ID sent to the installer.
+- `icon`: SVG filename under `electron/renderer/assets/icons/`.
+
+The main process derives its allow-list from the catalog and exposes the same catalog to the renderer through preload IPC. Adding a normal GUI option should not require editing the renderer or duplicating package IDs.
 
 ## Styling
 

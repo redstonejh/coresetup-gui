@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Firefox",
+    "id": "Mozilla.Firefox",
+    "icon": "firefox.svg"
+  },
+  {
+    "name": "Google Chrome",
+    "id": "Google.Chrome",
+    "icon": "chrome.svg"
+  },
+  {
+    "name": "Adobe Acrobat Reader",
+    "id": "Adobe.Acrobat.Reader.64-bit",
+    "icon": "acrobat.svg"
+  },
+  {
+    "name": "SonicWall NetExtender",
+    "id": "SonicWall.NetExtender",
+    "icon": "sonicwall.svg"
+  },
+  {
+    "name": "PowerShell 7",
+    "id": "Microsoft.PowerShell",
+    "icon": "powershell.svg"
+  },
+  {
+    "name": "Microsoft 365",
+    "id": "Microsoft.Office",
+    "icon": "office.svg"
+  },
+  {
+    "name": "Git",
+    "id": "Git.Git",
+    "icon": "git.svg"
+  },
+  {
+    "name": "Visual Studio Code",
+    "id": "Microsoft.VisualStudioCode",
+    "icon": "vscode.svg"
+  },
+  {
+    "name": "GitHub Desktop",
+    "id": "GitHub.GitHubDesktop",
+    "icon": "github.svg"
+  },
+  {
+    "name": "Oh My Posh",
+    "id": "JanDeDobbeleer.OhMyPosh",
+    "icon": "ohmyposh.svg"
+  },
+  {
+    "name": "NVM for Windows",
+    "id": "CoreyButler.NVMforWindows",
+    "icon": "nvm.svg"
+  },
+  {
+    "name": "TightVNC",
+    "id": "GlavSoft.TightVNC",
+    "icon": "tightvnc.svg"
+  }
+]

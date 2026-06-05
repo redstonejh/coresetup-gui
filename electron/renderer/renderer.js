@@ -1,18 +1,4 @@
-const apps = [
-  ["Firefox", "Mozilla.Firefox", "firefox.svg"],
-  ["Google Chrome", "Google.Chrome", "chrome.svg"],
-  ["Adobe Acrobat Reader", "Adobe.Acrobat.Reader.64-bit", "acrobat.svg"],
-  ["SonicWall NetExtender", "SonicWall.NetExtender", "sonicwall.svg"],
-  ["PowerShell 7", "Microsoft.PowerShell", "powershell.svg"],
-  ["Microsoft 365", "Microsoft.Office", "office.svg"],
-  ["Git", "Git.Git", "git.svg"],
-  ["Visual Studio Code", "Microsoft.VisualStudioCode", "vscode.svg"],
-  ["GitHub Desktop", "GitHub.GitHubDesktop", "github.svg"],
-  ["Oh My Posh", "JanDeDobbeleer.OhMyPosh", "ohmyposh.svg"],
-  ["NVM for Windows", "CoreyButler.NVMforWindows", "nvm.svg"],
-  ["TightVNC", "GlavSoft.TightVNC", "tightvnc.svg"]
-];
-
+let apps = [];
 const selected = new Set();
 let query = "";
 const appsNode = document.querySelector("#apps");
@@ -24,8 +10,8 @@ const searchField = document.querySelector(".search-field");
 function renderApps() {
   appsNode.innerHTML = "";
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleApps = apps.filter(([name]) => name.toLowerCase().includes(normalizedQuery));
-  for (const [name, id, icon] of visibleApps) {
+  const visibleApps = apps.filter(({ name }) => name.toLowerCase().includes(normalizedQuery));
+  for (const { name, id, icon } of visibleApps) {
     const row = document.createElement("label");
     row.className = `app-row${selected.has(id) ? " selected" : ""}`;
 
@@ -66,7 +52,7 @@ async function installSelected(ids) {
 }
 
 document.querySelector("#selectAll").addEventListener("click", () => {
-  apps.forEach(([, id]) => selected.add(id));
+  apps.forEach(({ id }) => selected.add(id));
   render();
 });
 
@@ -122,4 +108,9 @@ searchInput.addEventListener("input", () => {
   renderApps();
 });
 
-render();
+async function init() {
+  apps = await window.coreSetup.getApps();
+  render();
+}
+
+init();
