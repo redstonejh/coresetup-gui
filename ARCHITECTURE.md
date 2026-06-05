@@ -16,6 +16,7 @@ CoreSetup/
 │   ├── backend/
 │   │   ├── app-catalog.json
 │   │   ├── catalog.js
+│   │   ├── installedAppsService.js
 │   │   ├── installerService.js
 │   │   ├── windowControls.js
 │   │   └── windowMaterial.js
@@ -45,6 +46,7 @@ CoreSetup/
 Backend modules live in `electron/backend/`:
 
 - `catalog.js`: exposes the supported app catalog and exact package-ID allow-list.
+- `installedAppsService.js`: checks exact winget package IDs and returns installed app IDs for passive row status.
 - `installerService.js`: validates requested installs, writes the temporary PowerShell script, and launches elevated PowerShell.
 - `windowMaterial.js`: owns Windows acrylic, macOS vibrancy, and solid fallback options.
 - `windowControls.js`: owns close, bounds, and resize behavior for the frameless window.
@@ -65,6 +67,7 @@ The renderer does not get Node access.
 - app list rendering
 - search filtering
 - selection state
+- installed-status display
 - install button enabled/disabled state
 - custom resize-corner pointer handling
 

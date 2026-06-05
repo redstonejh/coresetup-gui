@@ -1,4 +1,5 @@
 let apps = [];
+const installed = new Set();
 const selected = new Set();
 let query = "";
 const appsNode = document.querySelector("#apps");
@@ -33,6 +34,14 @@ function renderApps() {
     title.textContent = name;
 
     row.append(checkbox, image, title);
+
+    if (installed.has(id)) {
+      const badge = document.createElement("div");
+      badge.className = "app-status";
+      badge.textContent = "Installed";
+      row.append(badge);
+    }
+
     appsNode.append(row);
   }
 }
@@ -111,6 +120,9 @@ searchInput.addEventListener("input", () => {
 async function init() {
   apps = await window.coreSetup.getApps();
   render();
+  const installedIds = await window.coreSetup.getInstalledApps();
+  installedIds.forEach((id) => installed.add(id));
+  renderApps();
 }
 
 init();

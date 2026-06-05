@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const { getApps, getAllowedPackageIds } = require("./backend/catalog");
+const { getInstalledAppIds } = require("./backend/installedAppsService");
 const { installApps } = require("./backend/installerService");
 const { applyWindowMaterial, getWindowMaterialOptions } = require("./backend/windowMaterial");
 const { closeApp, getWindowBounds, resizeWindow } = require("./backend/windowControls");
@@ -36,6 +37,7 @@ function createWindow() {
 }
 
 ipcMain.handle("get-apps", () => getApps());
+ipcMain.handle("get-installed-apps", () => getInstalledAppIds(getApps()));
 ipcMain.handle("install-apps", (_event, ids) => installApps(ids, allowedIds));
 ipcMain.handle("close-app", closeApp);
 ipcMain.handle("get-window-bounds", getWindowBounds);

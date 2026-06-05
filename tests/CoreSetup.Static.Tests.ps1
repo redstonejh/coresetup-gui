@@ -7,6 +7,7 @@ $electronRoot = Join-Path $repoRoot "electron"
 $electronBackendRoot = Join-Path $electronRoot "backend"
 $electronCatalogPath = Join-Path $electronBackendRoot "app-catalog.json"
 $electronCatalogModulePath = Join-Path $electronBackendRoot "catalog.js"
+$electronInstalledAppsServicePath = Join-Path $electronBackendRoot "installedAppsService.js"
 $electronInstallerServicePath = Join-Path $electronBackendRoot "installerService.js"
 $electronWindowMaterialPath = Join-Path $electronBackendRoot "windowMaterial.js"
 $electronWindowControlsPath = Join-Path $electronBackendRoot "windowControls.js"
@@ -23,6 +24,7 @@ $electronMainText = Get-Content $electronMainPath -Raw
 $electronCatalogText = Get-Content $electronCatalogPath -Raw
 $electronCatalog = $electronCatalogText | ConvertFrom-Json
 $electronCatalogModuleText = Get-Content $electronCatalogModulePath -Raw
+$electronInstalledAppsServiceText = Get-Content $electronInstalledAppsServicePath -Raw
 $electronInstallerServiceText = Get-Content $electronInstallerServicePath -Raw
 $electronWindowMaterialText = Get-Content $electronWindowMaterialPath -Raw
 $electronWindowControlsText = Get-Content $electronWindowControlsPath -Raw
@@ -335,6 +337,11 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronMainText `
+    -Pattern 'ipcMain\.handle\("get-installed-apps", \(\) => getInstalledAppIds\(getApps\(\)\)\)' `
+    -Message "Electron main process should expose installed app detection through IPC."
+
+Assert-Matches `
+    -Text $electronMainText `
     -Pattern 'ipcMain\.handle\("install-apps", \(_event, ids\) => installApps\(ids, allowedIds\)\)' `
     -Message "Electron main process should delegate install work to the backend installer service."
 
@@ -349,6 +356,11 @@ Assert-Matches `
     -Message "Electron preload should expose catalog loading through the safe API."
 
 Assert-Matches `
+    -Text $electronPreloadText `
+    -Pattern 'getInstalledApps:\s*\(\)\s*=>\s*ipcRenderer\.invoke\("get-installed-apps"\)' `
+    -Message "Electron preload should expose installed app status through the safe API."
+
+Assert-Matches `
     -Text $electronRendererText `
     -Pattern 'window\.coreSetup\.installApps' `
     -Message "Electron renderer should call the safe preload install API."
@@ -357,6 +369,31 @@ Assert-Matches `
     -Text $electronRendererText `
     -Pattern 'apps = await window\.coreSetup\.getApps\(\)' `
     -Message "Electron renderer should render from the shared application catalog instead of a hardcoded list."
+
+Assert-Matches `
+    -Text $electronInstalledAppsServiceText `
+    -Pattern 'execFile\([\s\r\n]*"winget",[\s\r\n]*\["list", "--id", id, "--exact", "--disable-interactivity"\]' `
+    -Message "Installed app detection should check exact winget package IDs without shelling through a command string."
+
+Assert-Matches `
+    -Text $electronInstalledAppsServiceText `
+    -Pattern 'stdout\.includes\(id\)' `
+    -Message "Installed app detection should confirm the exact package ID appears in winget output."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'const installed = new Set\(\)' `
+    -Message "Electron renderer should track installed package IDs separately from selected package IDs."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'window\.coreSetup\.getInstalledApps\(\)' `
+    -Message "Electron renderer should request installed status through preload."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'badge\.className = "app-status"[\s\S]*badge\.textContent = "Installed"' `
+    -Message "Electron renderer should show a simple Installed status for detected apps."
 
 Assert-NotMatches `
     -Text $electronBodyText `
@@ -558,8 +595,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern 'grid-template-columns:\s*20px 30px minmax\(0, 1fr\)' `
-    -Message "Electron app rows should align checkbox, icon, and name consistently."
+    -Pattern 'grid-template-columns:\s*20px 30px minmax\(0, 1fr\) auto' `
+    -Message "Electron app rows should align checkbox, icon, name, and installed status consistently."
 
 Assert-Matches `
     -Text $electronStylesText `

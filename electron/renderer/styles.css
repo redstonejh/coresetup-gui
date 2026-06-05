@@ -262,7 +262,7 @@ body {
 .app-row {
   min-height: 52px;
   display: grid;
-  grid-template-columns: 20px 30px minmax(0, 1fr);
+  grid-template-columns: 20px 30px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 0 10px;
@@ -309,6 +309,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.app-status {
+  color: #a7f3d0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .action-bar {

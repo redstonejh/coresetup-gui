@@ -4,6 +4,8 @@ CoreSetup installs common workstation applications on Windows.
 
 The maintained user-facing app is the Electron installer in `electron/`. It presents a simple app picker and launches the selected winget installs through an elevated PowerShell process.
 
+Apps already detected by winget are marked `Installed` in the picker. The status is informational only; users can still select an installed app if they want winget to repair, update, or confirm it.
+
 ## Run The Desktop Installer
 
 ```powershell
