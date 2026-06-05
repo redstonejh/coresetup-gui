@@ -13,6 +13,19 @@ npm start
 
 The installer validates selected package IDs against an allow-list before launching PowerShell.
 
+## Build A Client Installer
+
+To create a Windows `.exe` installer:
+
+```powershell
+npm install
+npm run dist:win
+```
+
+The generated installer is written to `dist/CoreSetup-Setup-0.1.0.exe`.
+
+The `.exe` bundles the Electron runtime, so a client does not need Node.js, npm, or Electron installed. Windows still needs winget available for the selected application installs.
+
 ## Run Checks
 
 ```powershell

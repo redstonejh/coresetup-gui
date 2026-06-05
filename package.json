@@ -3,12 +3,51 @@
   "version": "0.1.0",
   "private": true,
   "description": "CoreSetup desktop installer GUI",
+  "author": "Redstone JH",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "pwsh -NoProfile -ExecutionPolicy Bypass -File tests/Run-Checks.ps1"
+    "check": "pwsh -NoProfile -ExecutionPolicy Bypass -File tests/Run-Checks.ps1",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.redstonejh.coresetup",
+    "productName": "CoreSetup",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "coreSetup.ps1",
+      "README.md",
+      "ARCHITECTURE.md",
+      "package.json"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "CoreSetup-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CoreSetup"
+    }
   },
   "devDependencies": {
-    "electron": "^42.3.3"
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1"
   }
 }

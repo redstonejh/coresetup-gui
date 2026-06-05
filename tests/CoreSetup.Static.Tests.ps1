@@ -187,6 +187,31 @@ Assert-Matches `
     -Message "Package should expose an Electron start command."
 
 Assert-Matches `
+    -Text $packageText `
+    -Pattern '"dist:win":\s*"electron-builder --win nsis"' `
+    -Message "Package should expose a Windows installer build command."
+
+Assert-Matches `
+    -Text $packageText `
+    -Pattern '"electron-builder":' `
+    -Message "Package should include electron-builder for distributable Windows installers."
+
+Assert-Matches `
+    -Text $packageText `
+    -Pattern '"target":\s*"nsis"' `
+    -Message "Windows build should produce an NSIS installer executable."
+
+Assert-Matches `
+    -Text $packageText `
+    -Pattern '"signAndEditExecutable":\s*false' `
+    -Message "Local Windows installer builds should avoid code-signing helper extraction that requires symlink privileges."
+
+Assert-Matches `
+    -Text $readmeText `
+    -Pattern 'does not need Node\.js, npm, or Electron installed' `
+    -Message "README should explain that the packaged installer bundles the Electron runtime."
+
+Assert-Matches `
     -Text $electronMainText `
     -Pattern 'ipcMain\.handle\("install-apps"' `
     -Message "Electron main process should expose an install-apps IPC handler."
