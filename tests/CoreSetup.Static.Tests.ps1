@@ -542,8 +542,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '--selected:\s*rgba\(96,\s*165,\s*250,\s*\.18\)' `
-    -Message "Selected rows should use a lighter glassy accent tint without becoming a solid block."
+    -Pattern '--selected:\s*rgba\(96,\s*165,\s*250,\s*\.10\)' `
+    -Message "Selected rows should use a transparent accent tint without becoming a solid block."
 
 Assert-NotMatches `
     -Text $electronStylesText `
@@ -671,13 +671,18 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.app-row:hover\s*\{[\s\S]*background:\s*var\(--option-hover\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Option hover state should use the lighter option-specific glass surface."
+    -Pattern '\.app-row:hover\s*\{[\s\S]*background:\s*var\(--option-hover\);[\s\S]*box-shadow:\s*inset 0 1px 0 rgba\(255, 255, 255, \.05\);[\s\r\n]*\}' `
+    -Message "Option hover state should use a lighter tint without adding another blur layer."
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.app-row\.selected\s*\{[\s\S]*background:\s*var\(--selected\);[\s\S]*box-shadow:\s*inset 0 1px 0 rgba\(255, 255, 255, \.08\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Selected app rows should use glass material for their highlight state."
+    -Pattern '\.app-row\.selected\s*\{[\s\S]*background:\s*var\(--selected\);[\s\S]*box-shadow:\s*inset 0 1px 0 rgba\(255, 255, 255, \.05\);[\s\r\n]*\}' `
+    -Message "Selected app rows should use a transparent tint without adding another blur layer."
+
+Assert-NotMatches `
+    -Text $electronStylesText `
+    -Pattern '\.app-row(?::hover|\.selected)\s*\{[^\}]*backdrop-filter' `
+    -Message "App row hover and selected states should not stack additional gaussian blur over the window acrylic."
 
 Assert-Matches `
     -Text $electronStylesText `
