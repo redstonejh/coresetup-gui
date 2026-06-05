@@ -3,8 +3,9 @@
   --panel: rgba(26, 34, 51, .66);
   --panel-soft: rgba(32, 42, 61, .34);
   --secondary-glass: rgba(52, 64, 88, .26);
+  --option-hover: rgba(82, 96, 125, .20);
   --button-hover: rgba(36, 48, 71, .32);
-  --selected: rgba(59, 130, 246, .14);
+  --selected: rgba(96, 165, 250, .18);
   --accent: #3b82f6;
   --accent-glass: rgba(59, 130, 246, .72);
   --text: #f8fafc;
@@ -273,7 +274,7 @@ body {
 }
 
 .app-row:hover {
-  background: var(--secondary-glass);
+  background: var(--option-hover);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   backdrop-filter: var(--glass-blur);
 }

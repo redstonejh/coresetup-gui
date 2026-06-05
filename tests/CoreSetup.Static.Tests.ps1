@@ -526,6 +526,7 @@ foreach ($glassToken in @(
     '--panel:\s*rgba\(26, 34, 51, \.66\)',
     '--panel-soft:\s*rgba\(32, 42, 61, \.34\)',
     '--secondary-glass:\s*rgba\(52, 64, 88, \.26\)',
+    '--option-hover:\s*rgba\(82, 96, 125, \.20\)',
     '--button-hover:\s*rgba\(36, 48, 71, \.32\)'
 )) {
     Assert-Matches `
@@ -541,8 +542,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '--selected:\s*rgba\(59,\s*130,\s*246,\s*\.14\)' `
-    -Message "Selected rows should use a glassy accent tint without becoming a solid block."
+    -Pattern '--selected:\s*rgba\(96,\s*165,\s*250,\s*\.18\)' `
+    -Message "Selected rows should use a lighter glassy accent tint without becoming a solid block."
 
 Assert-NotMatches `
     -Text $electronStylesText `
@@ -670,8 +671,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.app-row:hover\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
-    -Message "Option hover state should use the lifted secondary glass surface."
+    -Pattern '\.app-row:hover\s*\{[\s\S]*background:\s*var\(--option-hover\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
+    -Message "Option hover state should use the lighter option-specific glass surface."
 
 Assert-Matches `
     -Text $electronStylesText `
