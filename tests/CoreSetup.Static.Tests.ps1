@@ -525,8 +525,8 @@ foreach ($color in @("#3b82f6", "#f8fafc", "#94a3b8")) {
 foreach ($glassToken in @(
     '--panel:\s*rgba\(26, 34, 51, \.66\)',
     '--panel-soft:\s*rgba\(32, 42, 61, \.34\)',
-    '--control-glass:\s*rgba\(17, 24, 39, \.38\)',
-    '--hover:\s*rgba\(36, 48, 71, \.32\)'
+    '--secondary-glass:\s*rgba\(52, 64, 88, \.26\)',
+    '--button-hover:\s*rgba\(36, 48, 71, \.32\)'
 )) {
     Assert-Matches `
         -Text $electronStylesText `
@@ -630,13 +630,13 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '--control-glass:\s*rgba\(17, 24, 39, \.38\)' `
-    -Message "Control surfaces should use one lighter overlay tint so glass is not blocked by compounded opacity."
+    -Pattern '--secondary-glass:\s*rgba\(52, 64, 88, \.26\)' `
+    -Message "Search, footer, and option hover surfaces should use one lighter less-tinted secondary glass overlay."
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '--footer-glass:\s*rgba\(26, 34, 51, \.32\)' `
-    -Message "Footer should use one lighter overlay tint above the main window glass layer."
+    -Pattern '--button-hover:\s*rgba\(36, 48, 71, \.32\)' `
+    -Message "Button hover should keep its previous darker hierarchy instead of using the lifted secondary surface tint."
 
 Assert-Matches `
     -Text $electronStylesText `
@@ -650,12 +650,12 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--control-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
+    -Pattern '\.search-input\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
     -Message "Search input should use the shared glass material while keeping text readable."
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.search-field:focus-within \.search-input\s*\{[\s\S]*border-color:\s*rgba\(147, 197, 253, \.48\);[\s\S]*background:\s*rgba\(17, 24, 39, \.44\);' `
+    -Pattern '\.search-field:focus-within \.search-input\s*\{[\s\S]*border-color:\s*rgba\(147, 197, 253, \.48\);[\s\S]*background:\s*rgba\(52, 64, 88, \.34\);' `
     -Message "Focused search input should keep a glass tint instead of a solid focus highlight."
 
 Assert-Matches `
@@ -665,8 +665,13 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronStylesText `
-    -Pattern '\.action-bar\s*\{[\s\S]*background:\s*var\(--footer-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
+    -Pattern '\.action-bar\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
     -Message "Bottom action bar should use the shared glass material."
+
+Assert-Matches `
+    -Text $electronStylesText `
+    -Pattern '\.app-row:hover\s*\{[\s\S]*background:\s*var\(--secondary-glass\);[\s\S]*backdrop-filter:\s*var\(--glass-blur\);' `
+    -Message "Option hover state should use the lifted secondary glass surface."
 
 Assert-Matches `
     -Text $electronStylesText `
