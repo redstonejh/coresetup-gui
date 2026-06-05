@@ -3,7 +3,7 @@ const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
 
-function buildInstallScript(ids) {
+function buildInstallScript(ids, updateIds = new Set()) {
   const lines = [
     "$ErrorActionPreference = 'Continue'",
     "$Host.UI.RawUI.WindowTitle = 'CoreSetup Installer'",
@@ -13,9 +13,15 @@ function buildInstallScript(ids) {
   ];
 
   for (const id of ids) {
-    lines.push(`Write-Host 'Installing ${id}...'`);
-    lines.push(`winget install --id ${id} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity`);
-    lines.push("if ($LASTEXITCODE -ne 0) { Write-Host 'Install failed or needs attention.' }");
+    if (updateIds.has(id)) {
+      lines.push(`Write-Host 'Updating ${id}...'`);
+      lines.push(`winget upgrade --id ${id} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity`);
+      lines.push("if ($LASTEXITCODE -ne 0) { Write-Host 'Update failed or needs attention.' }");
+    } else {
+      lines.push(`Write-Host 'Installing ${id}...'`);
+      lines.push(`winget install --id ${id} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity`);
+      lines.push("if ($LASTEXITCODE -ne 0) { Write-Host 'Install failed or needs attention.' }");
+    }
     lines.push("");
   }
 
@@ -25,18 +31,36 @@ function buildInstallScript(ids) {
   return lines.join("\r\n");
 }
 
-function installApps(ids, allowedIds) {
+function normalizeInstallRequest(request) {
+  if (Array.isArray(request)) {
+    return { ids: request, updateIds: [] };
+  }
+
+  if (request && Array.isArray(request.ids)) {
+    return {
+      ids: request.ids,
+      updateIds: Array.isArray(request.updateIds) ? request.updateIds : []
+    };
+  }
+
+  return { ids: [], updateIds: [] };
+}
+
+function installApps(request, allowedIds) {
+  const { ids, updateIds } = normalizeInstallRequest(request);
+
   if (!Array.isArray(ids) || ids.length === 0) {
     return { ok: false, message: "Choose at least one app first." };
   }
 
   const cleanIds = ids.filter((id) => allowedIds.has(id));
-  if (cleanIds.length !== ids.length) {
+  const cleanUpdateIds = updateIds.filter((id) => allowedIds.has(id) && cleanIds.includes(id));
+  if (cleanIds.length !== ids.length || cleanUpdateIds.length !== updateIds.length) {
     return { ok: false, message: "The app list contains an unknown package." };
   }
 
   const scriptPath = path.join(os.tmpdir(), `CoreSetup-Install-${Date.now()}.ps1`);
-  fs.writeFileSync(scriptPath, buildInstallScript(cleanIds), "utf8");
+  fs.writeFileSync(scriptPath, buildInstallScript(cleanIds, new Set(cleanUpdateIds)), "utf8");
 
   const escapedScript = scriptPath.replace(/'/g, "''");
   const command = [
@@ -59,5 +83,6 @@ function installApps(ids, allowedIds) {
 
 module.exports = {
   buildInstallScript,
+  normalizeInstallRequest,
   installApps
 };

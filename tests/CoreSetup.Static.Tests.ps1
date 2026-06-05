@@ -9,6 +9,7 @@ $electronCatalogPath = Join-Path $electronBackendRoot "app-catalog.json"
 $electronCatalogModulePath = Join-Path $electronBackendRoot "catalog.js"
 $electronInstalledAppsServicePath = Join-Path $electronBackendRoot "installedAppsService.js"
 $electronInstallerServicePath = Join-Path $electronBackendRoot "installerService.js"
+$electronUpdateServicePath = Join-Path $electronBackendRoot "updateService.js"
 $electronWindowMaterialPath = Join-Path $electronBackendRoot "windowMaterial.js"
 $electronWindowControlsPath = Join-Path $electronBackendRoot "windowControls.js"
 $electronMainPath = Join-Path $electronRoot "main.js"
@@ -26,6 +27,7 @@ $electronCatalog = $electronCatalogText | ConvertFrom-Json
 $electronCatalogModuleText = Get-Content $electronCatalogModulePath -Raw
 $electronInstalledAppsServiceText = Get-Content $electronInstalledAppsServicePath -Raw
 $electronInstallerServiceText = Get-Content $electronInstallerServicePath -Raw
+$electronUpdateServiceText = Get-Content $electronUpdateServicePath -Raw
 $electronWindowMaterialText = Get-Content $electronWindowMaterialPath -Raw
 $electronWindowControlsText = Get-Content $electronWindowControlsPath -Raw
 $electronPreloadText = Get-Content $electronPreloadPath -Raw
@@ -342,6 +344,11 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronMainText `
+    -Pattern 'ipcMain\.handle\("scan-updates", \(\) => getAvailableUpdateIds\(getApps\(\)\)\)' `
+    -Message "Electron main process should expose update scanning through IPC."
+
+Assert-Matches `
+    -Text $electronMainText `
     -Pattern 'ipcMain\.handle\("install-apps", \(_event, ids\) => installApps\(ids, allowedIds\)\)' `
     -Message "Electron main process should delegate install work to the backend installer service."
 
@@ -359,6 +366,11 @@ Assert-Matches `
     -Text $electronPreloadText `
     -Pattern 'getInstalledApps:\s*\(\)\s*=>\s*ipcRenderer\.invoke\("get-installed-apps"\)' `
     -Message "Electron preload should expose installed app status through the safe API."
+
+Assert-Matches `
+    -Text $electronPreloadText `
+    -Pattern 'scanUpdates:\s*\(\)\s*=>\s*ipcRenderer\.invoke\("scan-updates"\)' `
+    -Message "Electron preload should expose update scanning through the safe API."
 
 Assert-Matches `
     -Text $electronRendererText `
@@ -381,9 +393,34 @@ Assert-Matches `
     -Message "Installed app detection should confirm the exact package ID appears in winget output."
 
 Assert-Matches `
+    -Text $electronUpdateServiceText `
+    -Pattern '"winget",[\s\r\n]*\["upgrade", "--id", id, "--exact", "--source", "winget", "--accept-source-agreements", "--disable-interactivity"\]' `
+    -Message "Update scanning should check exact winget package IDs without shelling through a command string."
+
+Assert-Matches `
+    -Text $electronUpdateServiceText `
+    -Pattern 'const installed = await checkInstalled\(id\)' `
+    -Message "Update scanning should only report updates for apps currently installed."
+
+Assert-Matches `
+    -Text $electronInstallerServiceText `
+    -Pattern 'winget upgrade --id \$\{id\} --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity' `
+    -Message "Installer service should run exact winget upgrades for selected apps with available updates."
+
+Assert-Matches `
+    -Text $electronInstallerServiceText `
+    -Pattern 'normalizeInstallRequest' `
+    -Message "Installer service should normalize install payloads that include update IDs."
+
+Assert-Matches `
     -Text $electronRendererText `
     -Pattern 'const installed = new Set\(\)' `
     -Message "Electron renderer should track installed package IDs separately from selected package IDs."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'const updates = new Set\(\)' `
+    -Message "Electron renderer should track available updates separately from installed and selected package IDs."
 
 Assert-Matches `
     -Text $electronRendererText `
@@ -392,8 +429,23 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronRendererText `
-    -Pattern 'badge\.className = "app-status"[\s\S]*badge\.textContent = "Installed"' `
-    -Message "Electron renderer should show a simple Installed status for detected apps."
+    -Pattern 'window\.coreSetup\.scanUpdates\(\)' `
+    -Message "Electron renderer should request update scans through preload."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'window\.coreSetup\.installApps\(\{ ids, updateIds \}\)' `
+    -Message "Electron renderer should pass selected update IDs to the install backend."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'badge\.className = `app-status\$\{updates\.has\(id\) \? " update" : ""\}`' `
+    -Message "Electron renderer should classify installed/update status badges without adding extra controls."
+
+Assert-Matches `
+    -Text $electronRendererText `
+    -Pattern 'badge\.textContent = updates\.has\(id\) \? "Update available" : "Installed"' `
+    -Message "Electron renderer should show update availability above installed status."
 
 Assert-NotMatches `
     -Text $electronBodyText `
@@ -414,6 +466,11 @@ Assert-Matches `
     -Text $electronIndexText `
     -Pattern 'id="selectAll">Select all' `
     -Message "Electron UI should expose Select all without installing immediately."
+
+Assert-Matches `
+    -Text $electronIndexText `
+    -Pattern 'id="scanUpdates">Scan updates' `
+    -Message "Electron UI should expose a passive Scan updates action."
 
 foreach ($appId in @(
     "Mozilla.Firefox",
@@ -504,8 +561,8 @@ Assert-Matches `
 
 Assert-Matches `
     -Text $electronIndexText `
-    -Pattern '<footer class="action-bar">[\s\S]*id="exit">Exit</button>[\s\S]*id="clear">Clear</button>[\s\S]*id="selectAll">Select all</button>[\s\S]*id="install">Install</button>[\s\S]*</footer>' `
-    -Message "Electron UI should keep Exit on the left and Clear, Select all, Install in the bottom action bar."
+    -Pattern '<footer class="action-bar">[\s\S]*id="exit">Exit</button>[\s\S]*id="clear">Clear</button>[\s\S]*id="scanUpdates">Scan updates</button>[\s\S]*id="selectAll">Select all</button>[\s\S]*id="install">Install</button>[\s\S]*</footer>' `
+    -Message "Electron UI should keep Exit on the left and Clear, Scan updates, Select all, Install in the bottom action bar."
 
 Assert-Matches `
     -Text $electronRendererText `
@@ -721,6 +778,16 @@ Assert-Matches `
     -Text $electronStylesText `
     -Pattern '\.app-row\.selected\s*\{[\s\S]*background:\s*var\(--selected\);[\s\S]*box-shadow:\s*inset 0 1px 0 rgba\(255, 255, 255, \.05\);[\s\r\n]*\}' `
     -Message "Selected app rows should use a transparent tint without adding another blur layer."
+
+Assert-Matches `
+    -Text $electronStylesText `
+    -Pattern '\.app-status\s*\{[\s\S]*color:\s*#a7f3d0;' `
+    -Message "Installed app status should be visible without becoming a button or extra panel."
+
+Assert-Matches `
+    -Text $electronStylesText `
+    -Pattern '\.app-status\.update\s*\{[\s\S]*color:\s*#93c5fd;' `
+    -Message "Update available status should use a calm blue status color."
 
 Assert-NotMatches `
     -Text $electronStylesText `

@@ -1,10 +1,12 @@
 let apps = [];
 const installed = new Set();
+const updates = new Set();
 const selected = new Set();
 let query = "";
 const appsNode = document.querySelector("#apps");
 const installButton = document.querySelector("#install");
 const clearButton = document.querySelector("#clear");
+const scanUpdatesButton = document.querySelector("#scanUpdates");
 const searchInput = document.querySelector("#search");
 const searchField = document.querySelector(".search-field");
 
@@ -35,10 +37,10 @@ function renderApps() {
 
     row.append(checkbox, image, title);
 
-    if (installed.has(id)) {
+    if (updates.has(id) || installed.has(id)) {
       const badge = document.createElement("div");
-      badge.className = "app-status";
-      badge.textContent = "Installed";
+      badge.className = `app-status${updates.has(id) ? " update" : ""}`;
+      badge.textContent = updates.has(id) ? "Update available" : "Installed";
       row.append(badge);
     }
 
@@ -57,7 +59,8 @@ async function installSelected(ids) {
   if (!ids.length) {
     return;
   }
-  await window.coreSetup.installApps(ids);
+  const updateIds = ids.filter((id) => updates.has(id));
+  await window.coreSetup.installApps({ ids, updateIds });
 }
 
 document.querySelector("#selectAll").addEventListener("click", () => {
@@ -67,6 +70,20 @@ document.querySelector("#selectAll").addEventListener("click", () => {
 
 document.querySelector("#install").addEventListener("click", () => {
   installSelected(Array.from(selected));
+});
+
+scanUpdatesButton.addEventListener("click", async () => {
+  scanUpdatesButton.disabled = true;
+  scanUpdatesButton.textContent = "Scanning...";
+  updates.clear();
+  renderApps();
+
+  const updateIds = await window.coreSetup.scanUpdates();
+  updateIds.forEach((id) => updates.add(id));
+
+  scanUpdatesButton.disabled = false;
+  scanUpdatesButton.textContent = "Scan updates";
+  renderApps();
 });
 
 document.querySelector("#clear").addEventListener("click", () => {

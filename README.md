@@ -6,6 +6,8 @@ The maintained user-facing app is the Electron installer in `electron/`. It pres
 
 Apps already detected by winget are marked `Installed` in the picker. The status is informational only; users can still select an installed app if they want winget to repair, update, or confirm it.
 
+Use `Scan updates` to check installed catalog apps for available winget upgrades. Apps with updates are marked `Update available`; selecting those rows and clicking `Install` runs `winget upgrade` for them. Other selected rows still use normal `winget install`.
+
 ## Run The Desktop Installer
 
 ```powershell

@@ -318,6 +318,10 @@ body {
   line-height: 1;
 }
 
+.app-status.update {
+  color: #93c5fd;
+}
+
 .action-bar {
   min-height: 58px;
   display: flex;
